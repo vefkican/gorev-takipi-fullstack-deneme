@@ -1,4 +1,4 @@
-namespace TaskManagerAPI.Models
+namespace TaskManagerAPI.Models.Entities
 {
     public class User
     {

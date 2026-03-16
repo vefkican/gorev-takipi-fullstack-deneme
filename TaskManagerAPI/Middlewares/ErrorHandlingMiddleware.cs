@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-using TaskManagerAPI.Models;
+using TaskManagerAPI.Models.DTOs;
 
 namespace TaskManagerAPI.Middlewares
 {

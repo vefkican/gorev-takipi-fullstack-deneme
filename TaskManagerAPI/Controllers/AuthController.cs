@@ -5,7 +5,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using TaskManagerAPI.Data;
-using TaskManagerAPI.Models;
+using TaskManagerAPI.Models.DTOs;
+using TaskManagerAPI.Models.Entities;
 
 namespace TaskManagerAPI.Controllers
 {
