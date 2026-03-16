@@ -104,6 +104,7 @@ if (!isTestEnvironment)
 
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<INotificationService, ConsoleNotificationService>();
 
 // ==================== JWT KİMLİK DOĞRULAMA ====================
 

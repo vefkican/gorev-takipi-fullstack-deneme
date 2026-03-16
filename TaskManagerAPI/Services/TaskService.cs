@@ -7,10 +7,12 @@ namespace TaskManagerAPI.Services
     public class TaskService : ITaskService
     {
         private readonly ITaskRepository _repository;
+        private readonly INotificationService _notification;
 
-        public TaskService(ITaskRepository repository)
+        public TaskService(ITaskRepository repository, INotificationService notification)
         {
             _repository = repository;
+            _notification = notification;
         }
 
         public async Task<PagedResult<TaskItem>> GetAllAsync(int userId, string? search, bool? isCompleted, int page, int pageSize)
@@ -37,7 +39,9 @@ namespace TaskManagerAPI.Services
                 UserId = userId
             };
 
-            return await _repository.CreateAsync(task);
+            var created = await _repository.CreateAsync(task);
+            await _notification.SendTaskCreatedAsync(userId.ToString(), task.Title);
+            return created;
         }
 
         public async Task<bool> UpdateAsync(int id, int userId, TaskItem task)
@@ -53,6 +57,13 @@ namespace TaskManagerAPI.Services
                 : null;
 
             await _repository.UpdateAsync(existing);
+
+            // Task tamamlandıysa bildirim gönder
+            if (task.IsCompleted && !existing.IsCompleted == false)
+            {
+                await _notification.SendTaskCompletedAsync(userId.ToString(), existing.Title);
+            }
+
             return true;
         }
 
