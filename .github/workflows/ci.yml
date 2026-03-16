@@ -27,7 +27,8 @@ jobs:
 
       - name: Build et
         run: dotnet build ./TaskManagerAPI/TaskManagerAPI.csproj --no-restore
-
+      - name: Testleri çalıştır
+        run: dotnet test ./TaskManagerAPI.Tests/TaskManagerAPI.Tests.csproj --no-build --verbosity normal
       - name: Docker Hub'a giriş yap
         if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
