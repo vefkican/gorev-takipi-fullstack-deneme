@@ -80,24 +80,25 @@ builder.Services.AddSwaggerGen();
 // ==================== VERİTABANI BAĞLANTISI ====================
 
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+var isTestEnvironment = builder.Environment.EnvironmentName == "Testing";
 
-string connectionString;
-
-if (databaseUrl != null)
+if (!isTestEnvironment)
 {
-    // Production: DATABASE_URL ortam değişkeninden bağlantı bilgisi al
-    var uri = new Uri(databaseUrl);
-    var userInfo = uri.UserInfo.Split(':');
-    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]}";
-}
-else
-{
-    // Development: appsettings.json'dan bağlantı bilgisi al
-    connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
-}
+    string connectionString;
+    if (databaseUrl != null)
+    {
+        var uri = new Uri(databaseUrl);
+        var userInfo = uri.UserInfo.Split(':');
+        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]}";
+    }
+    else
+    {
+        connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+    }
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(connectionString));
+}
 
 // ==================== DEPENDENCY INJECTION ====================
 
@@ -141,11 +142,14 @@ app.MapControllers();                // Controller endpoint'lerini eşle
 
 // ==================== VERİTABANI MİGRASYONU ====================
 // Uygulama başlarken bekleyen migration'ları otomatik uygula
-
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+    if (!env.IsEnvironment("Testing"))
+    {
+        db.Database.Migrate();
+    }
 }
 
 app.Run();
