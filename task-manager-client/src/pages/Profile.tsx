@@ -43,12 +43,12 @@ function Profile() {
 
   const fetchStats = async () => {
     try {
-      const response = await taskService.getAll();
-      const tasks = response.data;
+      const response = await taskService.getAll(undefined, undefined, 1, 1000);
+      const tasks = response.data.items; // ← .items ekledik
       const now = new Date();
 
       setStats({
-        total: tasks.length,
+        total: response.data.totalCount, // ← totalCount kullandık
         completed: tasks.filter((t) => t.isCompleted).length,
         active: tasks.filter((t) => !t.isCompleted).length,
         overdue: tasks.filter(
