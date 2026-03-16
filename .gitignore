@@ -15,3 +15,5 @@
 
 # Docker
 docker-compose.yml
+
+**/logs

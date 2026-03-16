@@ -7,8 +7,31 @@ using TaskManagerAPI.Repositories;
 using TaskManagerAPI.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Serilog;
+
+// ==================== SERILOG YAPILANDIRMASI ====================
+// Konsola ve günlük dosyasına loglama (logs/log-{tarih}.txt)
+// Microsoft ve EF Core logları Warning seviyesinde tutulur (gürültüyü azaltmak için)
+
+var logConfig = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", Serilog.Events.LogEventLevel.Warning)
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File("logs/log-.txt",
+        rollingInterval: RollingInterval.Day,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
+
+if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+{
+    logConfig.WriteTo.Seq("http://localhost:5341");
+}
+
+Log.Logger = logConfig.CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog(); // Serilog'u varsayılan logger olarak ayarla
 
 // ==================== SERVİS KAYITLARI ====================
 
@@ -102,16 +125,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSerilogRequestLogging();
 
-app.UseCors("AllowReact");
-app.UseMiddleware<TaskManagerAPI.Middlewares.ErrorHandlingMiddleware>();
-app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseRateLimiter();
-app.UseAuthorization();
-app.MapControllers();
+app.UseSwagger();                    // Swagger JSON endpoint
+app.UseSwaggerUI();                  // Swagger arayüzü
+
+app.UseCors("AllowReact");           // CORS politikası uygula
+app.UseMiddleware<TaskManagerAPI.Middlewares.ErrorHandlingMiddleware>(); // Global hata yakalama
+app.UseHttpsRedirection();           // HTTP → HTTPS yönlendirme
+app.UseAuthentication();             // JWT token doğrulama
+app.UseRateLimiter();                // İstek sınırlandırma
+app.UseAuthorization();              // Yetkilendirme kontrolü
+app.MapControllers();                // Controller endpoint'lerini eşle
 
 // ==================== VERİTABANI MİGRASYONU ====================
 // Uygulama başlarken bekleyen migration'ları otomatik uygula
