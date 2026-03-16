@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TaskManagerAPI.Data;
+using TaskManagerAPI.Models.DTOs;
 using TaskManagerAPI.Models.Entities;
 
 namespace TaskManagerAPI.Repositories
@@ -13,7 +14,7 @@ namespace TaskManagerAPI.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<TaskItem>> GetAllAsync(int userId, string? search, bool? isCompleted)
+        public async Task<PagedResult<TaskItem>> GetAllAsync(int userId, string? search, bool? isCompleted, int page, int pageSize)
         {
             var query = _context.Tasks
                 .Where(t => t.UserId == userId && t.DeletedAt == null);
@@ -25,7 +26,21 @@ namespace TaskManagerAPI.Repositories
             if (isCompleted.HasValue)
                 query = query.Where(t => t.IsCompleted == isCompleted.Value);
 
-            return await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<TaskItem>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<TaskItem?> GetByIdAsync(int id, int userId)

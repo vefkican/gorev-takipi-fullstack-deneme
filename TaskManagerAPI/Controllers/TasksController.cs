@@ -24,14 +24,19 @@ namespace TaskManagerAPI.Controllers
         private int GetUserId() =>
             int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        // GET: api/tasks
+        // GET: api/tasks?search=&isCompleted=&page=1&pageSize=10
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks(
+        public async Task<ActionResult<PagedResult<TaskItem>>> GetTasks(
             [FromQuery] string? search,
-            [FromQuery] bool? isCompleted)
+            [FromQuery] bool? isCompleted,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var tasks = await _taskService.GetAllAsync(GetUserId(), search, isCompleted);
-            return Ok(tasks);
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 50) pageSize = 10;
+
+            var result = await _taskService.GetAllAsync(GetUserId(), search, isCompleted, page, pageSize);
+            return Ok(result);
         }
 
         // GET: api/tasks/1

@@ -23,7 +23,15 @@ export interface TaskItem {
   dueDate?: string;
   userId: number;
 }
-
+export interface PagedResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
 export interface CreateTaskDto {
   title: string;
   description?: string;
@@ -50,11 +58,18 @@ export const authService = {
 };
 
 export const taskService = {
-  getAll: (search?: string, isCompleted?: boolean) => {
+  getAll: (
+    search?: string,
+    isCompleted?: boolean,
+    page: number = 1,
+    pageSize: number = 10,
+  ) => {
     const params: Record<string, string> = {};
     if (search) params.search = search;
     if (isCompleted !== undefined) params.isCompleted = isCompleted.toString();
-    return api.get<TaskItem[]>("/tasks", { params });
+    params.page = page.toString();
+    params.pageSize = pageSize.toString();
+    return api.get<PagedResult<TaskItem>>("/tasks", { params });
   },
   create: (data: CreateTaskDto) => api.post<TaskItem>("/tasks", data),
   update: (id: number, data: TaskItem) => api.put(`/tasks/${id}`, data),

@@ -22,6 +22,7 @@ var logConfig = new LoggerConfiguration()
         rollingInterval: RollingInterval.Day,
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
 
+// Development ortamında Seq log sunucusuna da gönder (yapısal log görüntüleme)
 if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
 {
     logConfig.WriteTo.Seq("http://localhost:5341");
@@ -125,7 +126,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging();       // Her HTTP isteğini otomatik logla
 
 app.UseSwagger();                    // Swagger JSON endpoint
 app.UseSwaggerUI();                  // Swagger arayüzü

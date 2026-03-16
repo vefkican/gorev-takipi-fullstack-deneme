@@ -1,30 +1,32 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { taskService, type TaskItem } from "../services/api";
+import { taskService, type TaskItem, type PagedResult } from "../services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function Tasks() {
-  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [pagedResult, setPagedResult] = useState<PagedResult<TaskItem> | null>(
+    null,
+  );
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<boolean | undefined>(undefined);
+  const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filter]);
+  }, [search, filter, page]);
 
   const fetchTasks = async () => {
     try {
-      const response = await taskService.getAll(search, filter);
-      setTasks(response.data);
+      const response = await taskService.getAll(search, filter, page, 10);
+      setPagedResult(response.data);
     } catch {
       setError("Tasklar yüklenemedi!");
     }
@@ -74,6 +76,7 @@ function Tasks() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     navigate("/login");
   };
 
@@ -146,24 +149,36 @@ function Tasks() {
             type="text"
             placeholder="Task ara..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             className="flex-1"
           />
           <Button
             variant={filter === undefined ? "default" : "outline"}
-            onClick={() => setFilter(undefined)}
+            onClick={() => {
+              setFilter(undefined);
+              setPage(1);
+            }}
           >
             Hepsi
           </Button>
           <Button
             variant={filter === false ? "default" : "outline"}
-            onClick={() => setFilter(false)}
+            onClick={() => {
+              setFilter(false);
+              setPage(1);
+            }}
           >
             Aktif
           </Button>
           <Button
             variant={filter === true ? "default" : "outline"}
-            onClick={() => setFilter(true)}
+            onClick={() => {
+              setFilter(true);
+              setPage(1);
+            }}
           >
             Tamamlanan
           </Button>
@@ -171,12 +186,12 @@ function Tasks() {
 
         {/* Task Listesi */}
         <div className="space-y-3">
-          {tasks.length === 0 ? (
+          {pagedResult?.items.length === 0 ? (
             <p className="text-center text-gray-400 py-10">
               Henüz task eklenmemiş!
             </p>
           ) : (
-            tasks.map((task) => (
+            pagedResult?.items.map((task) => (
               <Card
                 key={task.id}
                 className={task.isCompleted ? "opacity-60" : ""}
@@ -225,6 +240,30 @@ function Tasks() {
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {pagedResult && pagedResult.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setPage((p) => p - 1)}
+              disabled={!pagedResult.hasPreviousPage}
+            >
+              ← Önceki
+            </Button>
+            <span className="text-sm text-gray-500">
+              {pagedResult.page} / {pagedResult.totalPages} sayfa (
+              {pagedResult.totalCount} task)
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={!pagedResult.hasNextPage}
+            >
+              Sonraki →
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
