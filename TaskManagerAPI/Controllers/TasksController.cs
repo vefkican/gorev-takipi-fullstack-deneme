@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 using TaskManagerAPI.Models.DTOs;
 using TaskManagerAPI.Models.Entities;
@@ -10,6 +11,7 @@ namespace TaskManagerAPI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
+    [EnableRateLimiting("fixed")]
     public class TasksController : ControllerBase
     {
         private readonly ITaskService _taskService;
