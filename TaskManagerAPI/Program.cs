@@ -43,7 +43,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "https://gorev-takipi-fullstack-deneme-71w3v5yuy-vefkicans-projects.vercel.app")
+        policy.WithOrigins("http://localhost:5173", "https://gorev-takipi-fullstack-deneme.vercel.app")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
