@@ -45,8 +45,8 @@ jobs:
 
       - name: Railway'e deploy et
         if: github.ref == 'refs/heads/main'
-        uses: railway/deploy@v1
-        with:
-          service: taskmanager-api
+        run: |
+          npm install -g @railway/cli
+          railway redeploy --service taskmanager-api --yes
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
