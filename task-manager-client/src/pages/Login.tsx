@@ -25,7 +25,8 @@ function Login() {
     setLoading(true);
     try {
       const response = await authService.login({ username, password });
-      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("token", response.data.accessToken);
+      localStorage.setItem("refreshToken", response.data.refreshToken);
       navigate("/tasks");
     } catch {
       setError("Kullanıcı adı veya şifre hatalı!");

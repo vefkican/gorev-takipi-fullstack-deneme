@@ -37,7 +37,16 @@ export interface AuthDto {
 
 export const authService = {
   register: (data: AuthDto) => api.post("/auth/register", data),
-  login: (data: AuthDto) => api.post<{ token: string }>("/auth/login", data),
+  login: (data: AuthDto) =>
+    api.post<{ accessToken: string; refreshToken: string }>(
+      "/auth/login",
+      data,
+    ),
+  refresh: (refreshToken: string) =>
+    api.post<{ accessToken: string; refreshToken: string }>("/auth/refresh", {
+      refreshToken,
+    }),
+  logout: (refreshToken: string) => api.post("/auth/logout", { refreshToken }),
 };
 
 export const taskService = {
