@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using TaskManagerAPI.Models.DTOs;
 using TaskManagerAPI.Models.Entities;
 using TaskManagerAPI.Repositories;
@@ -7,12 +8,27 @@ namespace TaskManagerAPI.Services
     public class TaskService : ITaskService
     {
         private readonly ITaskRepository _repository;
-        private readonly INotificationService _notification;
+        private readonly IEnumerable<ITaskEventHandler> _eventHandlers;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public TaskService(ITaskRepository repository, INotificationService notification)
+        public TaskService(
+            ITaskRepository repository,
+            IEnumerable<ITaskEventHandler> eventHandlers,
+            IHttpContextAccessor httpContextAccessor)
         {
             _repository = repository;
-            _notification = notification;
+            _eventHandlers = eventHandlers;
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        private string GetUsername() =>
+            _httpContextAccessor.HttpContext?.User
+                .FindFirstValue(ClaimTypes.Name) ?? "Unknown";
+
+        private async Task PublishEvent(TaskEvent taskEvent)
+        {
+            foreach (var handler in _eventHandlers)
+                await handler.HandleAsync(taskEvent);
         }
 
         public async Task<PagedResult<TaskItem>> GetAllAsync(int userId, string? search, bool? isCompleted, int page, int pageSize, string? sortBy = null)
@@ -40,7 +56,15 @@ namespace TaskManagerAPI.Services
             };
 
             var created = await _repository.CreateAsync(task);
-            await _notification.SendTaskCreatedAsync(userId.ToString(), task.Title);
+
+            await PublishEvent(new TaskEvent
+            {
+                Type = TaskEventType.Created,
+                Task = created,
+                UserId = userId,
+                Username = GetUsername()
+            });
+
             return created;
         }
 
@@ -48,6 +72,8 @@ namespace TaskManagerAPI.Services
         {
             var existing = await _repository.GetByIdAsync(id, userId);
             if (existing == null) return false;
+
+            var wasCompleted = existing.IsCompleted;
 
             existing.Title = task.Title;
             existing.Description = task.Description;
@@ -58,10 +84,15 @@ namespace TaskManagerAPI.Services
 
             await _repository.UpdateAsync(existing);
 
-            // Task tamamlandıysa bildirim gönder
-            if (task.IsCompleted && !existing.IsCompleted == false)
+            if (!wasCompleted && task.IsCompleted)
             {
-                await _notification.SendTaskCompletedAsync(userId.ToString(), existing.Title);
+                await PublishEvent(new TaskEvent
+                {
+                    Type = TaskEventType.Completed,
+                    Task = existing,
+                    UserId = userId,
+                    Username = GetUsername()
+                });
             }
 
             return true;
@@ -73,6 +104,15 @@ namespace TaskManagerAPI.Services
             if (task == null) return false;
 
             await _repository.DeleteAsync(task);
+
+            await PublishEvent(new TaskEvent
+            {
+                Type = TaskEventType.Deleted,
+                Task = task,
+                UserId = userId,
+                Username = GetUsername()
+            });
+
             return true;
         }
     }

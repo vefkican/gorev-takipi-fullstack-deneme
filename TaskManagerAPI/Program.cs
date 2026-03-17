@@ -39,6 +39,7 @@ builder.Host.UseSerilog(); // Serilog'u varsayılan logger olarak ayarla
 
 builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
+builder.Services.AddHttpContextAccessor();
 
 // Rate Limiting - API isteklerini sınırlandırma
 builder.Services.AddRateLimiter(options =>
@@ -112,6 +113,8 @@ builder.Services.AddScoped<ITaskRepository>(provider =>
     ));
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<INotificationService, ConsoleNotificationService>();
+builder.Services.AddScoped<ITaskEventHandler, LoggingTaskEventHandler>();
+builder.Services.AddScoped<ITaskEventHandler, NotificationTaskEventHandler>();
 
 // ==================== JWT KİMLİK DOĞRULAMA ====================
 
