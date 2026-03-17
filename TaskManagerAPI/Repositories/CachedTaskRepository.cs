@@ -10,18 +10,42 @@ namespace TaskManagerAPI.Repositories
         private readonly IMemoryCache _cache;
         private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(5);
 
+        // Hangi cache key'lerin hangi kullanıcıya ait olduğunu takip et
+        private static readonly Dictionary<int, List<string>> _userCacheKeys = new();
+
         public CachedTaskRepository(ITaskRepository inner, IMemoryCache cache)
         {
             _inner = inner;
             _cache = cache;
         }
 
-        private string GetCacheKey(int userId, string? search, bool? isCompleted, int page, int pageSize, string? sortBy)
-            => $"tasks_{userId}_{search}_{isCompleted}_{page}_{pageSize}_{sortBy}";
+        private string GetListCacheKey(int userId, string? search, bool? isCompleted, int page, int pageSize, string? sortBy)
+            => $"tasks_list_{userId}_{search}_{isCompleted}_{page}_{pageSize}_{sortBy}";
+
+        private string GetByIdCacheKey(int id, int userId)
+            => $"tasks_item_{userId}_{id}";
+
+        private void TrackCacheKey(int userId, string key)
+        {
+            if (!_userCacheKeys.ContainsKey(userId))
+                _userCacheKeys[userId] = new List<string>();
+            _userCacheKeys[userId].Add(key);
+        }
+
+        private void InvalidateCache(int userId)
+        {
+            if (_userCacheKeys.TryGetValue(userId, out var keys))
+            {
+                foreach (var key in keys)
+                    _cache.Remove(key);
+                keys.Clear();
+                Console.WriteLine($"Cache invalidated for userId: {userId}");
+            }
+        }
 
         public async Task<PagedResult<TaskItem>> GetAllAsync(int userId, string? search, bool? isCompleted, int page, int pageSize, string? sortBy = null)
         {
-            var cacheKey = GetCacheKey(userId, search, isCompleted, page, pageSize, sortBy);
+            var cacheKey = GetListCacheKey(userId, search, isCompleted, page, pageSize, sortBy);
 
             if (_cache.TryGetValue(cacheKey, out PagedResult<TaskItem>? cached))
             {
@@ -32,11 +56,29 @@ namespace TaskManagerAPI.Repositories
             Console.WriteLine($"Cache MISS: {cacheKey}");
             var result = await _inner.GetAllAsync(userId, search, isCompleted, page, pageSize, sortBy);
             _cache.Set(cacheKey, result, _cacheDuration);
+            TrackCacheKey(userId, cacheKey);
             return result;
         }
 
         public async Task<TaskItem?> GetByIdAsync(int id, int userId)
-            => await _inner.GetByIdAsync(id, userId);
+        {
+            var cacheKey = GetByIdCacheKey(id, userId);
+
+            if (_cache.TryGetValue(cacheKey, out TaskItem? cached))
+            {
+                Console.WriteLine($"Cache HIT: {cacheKey}");
+                return cached;
+            }
+
+            Console.WriteLine($"Cache MISS: {cacheKey}");
+            var result = await _inner.GetByIdAsync(id, userId);
+            if (result != null)
+            {
+                _cache.Set(cacheKey, result, _cacheDuration);
+                TrackCacheKey(userId, cacheKey);
+            }
+            return result;
+        }
 
         public async Task<TaskItem> CreateAsync(TaskItem task)
         {
@@ -55,12 +97,6 @@ namespace TaskManagerAPI.Repositories
         {
             await _inner.DeleteAsync(task);
             InvalidateCache(task.UserId);
-        }
-
-        private void InvalidateCache(int userId)
-        {
-            // Kullanıcının tüm cache'ini temizle
-            Console.WriteLine($"Cache invalidated for userId: {userId}");
         }
     }
 }
