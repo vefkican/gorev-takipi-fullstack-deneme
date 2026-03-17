@@ -8,6 +8,7 @@ using TaskManagerAPI.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Serilog;
+using Microsoft.Extensions.Caching.Memory;
 
 // ==================== SERILOG YAPILANDIRMASI ====================
 // Konsola ve günlük dosyasına loglama (logs/log-{tarih}.txt)
@@ -37,6 +38,7 @@ builder.Host.UseSerilog(); // Serilog'u varsayılan logger olarak ayarla
 // ==================== SERVİS KAYITLARI ====================
 
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 
 // Rate Limiting - API isteklerini sınırlandırma
 builder.Services.AddRateLimiter(options =>
@@ -102,7 +104,12 @@ if (!isTestEnvironment)
 
 // ==================== DEPENDENCY INJECTION ====================
 
-builder.Services.AddScoped<ITaskRepository, TaskRepository>();
+builder.Services.AddScoped<TaskRepository>();
+builder.Services.AddScoped<ITaskRepository>(provider =>
+    new CachedTaskRepository(
+        provider.GetRequiredService<TaskRepository>(),
+        provider.GetRequiredService<IMemoryCache>()
+    ));
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<INotificationService, ConsoleNotificationService>();
 

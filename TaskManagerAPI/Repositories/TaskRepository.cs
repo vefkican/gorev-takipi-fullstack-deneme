@@ -17,7 +17,6 @@ namespace TaskManagerAPI.Repositories
 
         public async Task<PagedResult<TaskItem>> GetAllAsync(int userId, string? search, bool? isCompleted, int page, int pageSize, string? sortBy = null)
         {
-            Console.WriteLine($"SortBy: {sortBy}");
             var query = _context.Tasks
                 .Where(t => t.UserId == userId && t.DeletedAt == null);
 
