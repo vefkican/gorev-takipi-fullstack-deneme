@@ -15,9 +15,9 @@ namespace TaskManagerAPI.Services
             _notification = notification;
         }
 
-        public async Task<PagedResult<TaskItem>> GetAllAsync(int userId, string? search, bool? isCompleted, int page, int pageSize)
+        public async Task<PagedResult<TaskItem>> GetAllAsync(int userId, string? search, bool? isCompleted, int page, int pageSize, string? sortBy = null)
         {
-            return await _repository.GetAllAsync(userId, search, isCompleted, page, pageSize);
+            return await _repository.GetAllAsync(userId, search, isCompleted, page, pageSize, sortBy);
         }
 
         public async Task<TaskItem?> GetByIdAsync(int id, int userId)

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TaskManagerAPI.Data;
 using TaskManagerAPI.Models.DTOs;
 using TaskManagerAPI.Models.Entities;
+using TaskManagerAPI.Services.Strategies;
 
 namespace TaskManagerAPI.Repositories
 {
@@ -14,8 +15,9 @@ namespace TaskManagerAPI.Repositories
             _context = context;
         }
 
-        public async Task<PagedResult<TaskItem>> GetAllAsync(int userId, string? search, bool? isCompleted, int page, int pageSize)
+        public async Task<PagedResult<TaskItem>> GetAllAsync(int userId, string? search, bool? isCompleted, int page, int pageSize, string? sortBy = null)
         {
+            Console.WriteLine($"SortBy: {sortBy}");
             var query = _context.Tasks
                 .Where(t => t.UserId == userId && t.DeletedAt == null);
 
@@ -26,10 +28,14 @@ namespace TaskManagerAPI.Repositories
             if (isCompleted.HasValue)
                 query = query.Where(t => t.IsCompleted == isCompleted.Value);
 
-            var totalCount = await query.CountAsync();
+            // Strategy Pattern ile sıralama
+            var strategy = TaskSortStrategyFactory.Create(sortBy);
 
+
+            query = strategy.Sort(query);
+
+            var totalCount = await query.CountAsync();
             var items = await query
-                .OrderByDescending(t => t.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

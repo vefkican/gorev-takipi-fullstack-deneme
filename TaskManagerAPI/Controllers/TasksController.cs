@@ -30,12 +30,13 @@ namespace TaskManagerAPI.Controllers
             [FromQuery] string? search,
             [FromQuery] bool? isCompleted,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = null)
         {
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 50) pageSize = 10;
 
-            var result = await _taskService.GetAllAsync(GetUserId(), search, isCompleted, page, pageSize);
+            var result = await _taskService.GetAllAsync(GetUserId(), search, isCompleted, page, pageSize, sortBy);
             return Ok(result);
         }
 
